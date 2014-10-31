@@ -1,0 +1,23 @@
+
+body, div, span {
+  font-family: Helvetica, Arial, Sans;
+  margin: 0;
+  padding: 0;
+  text-align: center
+}
+
+input {
+  border: solid 1px #fff;
+  border-radius: 5px;
+  font-size: 1em;
+  padding: 0.5em;
+}
+
+.wrapper {
+  background-color: #fafafa;
+  border-radius: 0 0 10px 10px;
+  margin: 0 auto;
+  padding: 20px 20px 20px 50px;
+  width: 600px;
+}
+
