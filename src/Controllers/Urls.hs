@@ -18,6 +18,7 @@ import Data.Word (Word8)
 import Network.HTTP.Types (status201, status400)
 import System.Random
 import Web.Scotty (ActionM, ScottyM, body, param, redirect, status, text)
+import Web.Scotty.Hastache (ActionH, ScottyH, hastache, setH)
 
 urls :: Redis.Connection -> ScottyM ()
 urls = undefined
@@ -28,12 +29,16 @@ handleUrlCreate conn = do
     if validateUrl url
         then do
             url' <- liftIO $ createUrlFromString conn url
-            status status201
-            text url'
+            redirect url'
         else status status400 >> text "Invalid URL"
 
-handleUrlView :: Redis.Connection -> ActionM ()
-handleUrlView = undefined
+handleUrlView :: Redis.Connection -> ActionH ()
+handleUrlView conn = do
+    k <- param "url_hash"
+    u <- Redis.runRedis conn $ Redis.get $ BL.toStrict $ TL.encodeUtf8 k
+    setH "url_hash" k
+    setH "url" u
+    hastache "urls/view.html"
 
 validateUrl :: B.ByteString -> Bool
 validateUrl _ = True

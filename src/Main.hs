@@ -3,37 +3,63 @@
 -- The main entry point for the application.
 module Main where
 
-import Control.Monad.IO.Class
+import Control.Applicative ((<$>))
+import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as ByteStringS
 import qualified Data.ByteString.Lazy as ByteStringL (fromStrict, toStrict)
 import Data.Char (ord)
+import Data.Maybe (fromMaybe)
 import qualified Data.Text.Lazy as TextL
 import qualified Data.Text.Lazy.Encoding as TextL
 import Data.Word (Word8)
 import qualified Database.Redis as Redis
 import Network.HTTP.Types
+import Network.Socket (PortNumber(PortNum))
 import Network.Wai.Middleware.Static
-import System.Environment (getEnv)
+import System.Environment (getEnv, lookupEnv)
 import System.Random
-import Web.Scotty
+-- import Text.Hastache
+import Web.Scotty.Trans (body, get, file, middleware, param, post,
+                         redirect, status, text)
+import Web.Scotty.Hastache
 
 main :: IO ()
 main = do
     port <- fmap read (getEnv "PORT")
-    conn <- Redis.connect Redis.defaultConnectInfo
+    conn <- getRedisConnection
 
-    scotty port $ do
+    scottyH' port $ do
+        setTemplatesDir "templates"
+
         middleware $ staticPolicy (noDots >-> addBase "static")
 
-        get "/" handleHome
-        get "/:url_hash" (handleUrlRedirect conn)
-        post "/urls" (handleUrlCreate conn)
-        get "/urls/:url_hash" handleUrlView
+        -- main logic
+        getT "/" handleHome
+        getT "/:url_hash" (handleUrlRedirect conn)
 
-handleHome :: ActionM ()
+        -- urls Controller
+        postT "/urls" (handleUrlCreate conn)
+        getT  "/urls/:url_hash" handleUrlView
+      where getT = Web.Scotty.Trans.get
+            postT = Web.Scotty.Trans.post
+
+getRedisConnection :: IO Redis.Connection
+getRedisConnection = do
+    redisHost  <- "REDIS_HOST" `fromEnvWithDefault` "localhost"
+    redisPort  <- "REDIS_PORT" `fromEnvWithDefault` "6379"
+    mRedisAuth <- fmap read <$> lookupEnv "REDIS_AUTH"
+    Redis.connect $
+        Redis.defaultConnectInfo { Redis.connectHost = redisHost
+                                 , Redis.connectPort =
+                                      Redis.PortNumber (PortNum redisPort)
+                                 , Redis.connectAuth = mRedisAuth
+                                 }
+  where fromEnvWithDefault d = fmap (read . fromMaybe d) . lookupEnv
+
+handleHome :: ActionH' ()
 handleHome = file "static/index.html"
 
-handleUrlRedirect :: Redis.Connection -> ActionM ()
+handleUrlRedirect :: Redis.Connection -> ActionH' ()
 handleUrlRedirect conn = do
     k <- param "url_hash"
     mr <- liftIO $ getRedirectUrl conn k
@@ -41,10 +67,10 @@ handleUrlRedirect conn = do
         Just r -> redirect r
         Nothing -> status status404 >> text "Invalid URL"
 
-handleUrlView :: ActionM ()
+handleUrlView :: ActionH' ()
 handleUrlView = undefined
 
-handleUrlCreate :: Redis.Connection -> ActionM ()
+handleUrlCreate :: Redis.Connection -> ActionH' ()
 handleUrlCreate conn = do
     url <- fmap ByteStringL.toStrict body
     if validateUrl url then do
