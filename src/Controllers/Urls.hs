@@ -17,14 +17,14 @@ import qualified Data.Text.Lazy.Encoding as TL
 import Data.Word (Word8)
 import Network.HTTP.Types (status201, status400)
 import System.Random
-import Web.Scotty (ActionM, ScottyM, body, status, text)
+import Web.Scotty (ActionM, ScottyM, body, param, redirect, status, text)
 
 urls :: Redis.Connection -> ScottyM ()
 urls = undefined
 
 handleUrlCreate :: Redis.Connection -> ActionM ()
 handleUrlCreate conn = do
-    url <- fmap BL.toStrict body
+    url <- param "url"
     if validateUrl url
         then do
             url' <- liftIO $ createUrlFromString conn url

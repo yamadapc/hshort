@@ -1,23 +1,28 @@
-
 body, div, span {
-  font-family: Helvetica, Arial, Sans;
+  font-family: 'Source Code Pro', monospace;
   margin: 0;
   padding: 0;
-  text-align: center
 }
 
-input {
-  border: solid 1px #fff;
-  border-radius: 5px;
-  font-size: 1em;
-  padding: 0.5em;
+body, div, span, input, button, a {
+  font-family: 'Source Code Pro', monospace;
+}
+
+.blinking {
+  text-decoration: blink;
 }
 
 .wrapper {
-  background-color: #fafafa;
+  background-color: white;
   border-radius: 0 0 10px 10px;
   margin: 0 auto;
   padding: 20px 20px 20px 50px;
   width: 600px;
 }
 
+input, button {
+  background-color: white;
+  border: solid 1px #C0C0C0;
+  font-size: 1em;
+  padding: 0.5em;
+}

@@ -1,5 +1,12 @@
 'use strict';
-window.onload = setupListeners;
+// ----------------------------------------------------------------------------
+// Form Submission logic
+// ----------------------------------------------------------------------------
+
+window.onload = function() {
+  setupCursor();
+  setupListeners();
+};
 
 /**
  * Sets-up global event listeners
@@ -66,3 +73,13 @@ function updateStatus(statusStr) {
   statusEl.innerHTML = statusStr;
 }
 
+// ----------------------------------------------------------------------------
+// Visitor count set-up
+// ----------------------------------------------------------------------------
+
+/**
+ * Sets-up the visitor counter
+ */
+
+function setupCursor() {
+}
