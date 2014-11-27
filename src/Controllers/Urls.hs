@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Controllers.Urls
-    ( urls
+    ( loadRoutes
     , handleUrlCreate
     , handleUrlView
     )
@@ -11,48 +11,81 @@ import qualified Database.Redis as Redis
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL (fromStrict, toStrict)
 import Data.Char (ord)
-import Data.Monoid (mappend)
+import Data.Monoid ((<>))
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import Data.Word (Word8)
-import Network.HTTP.Types (status201, status400)
+import Network.HTTP.Types (status400, status404)
 import System.Random
-import Web.Scotty (ActionM, ScottyM, body, param, redirect, status, text)
-import Web.Scotty.Hastache (ActionH, ScottyH, hastache, setH)
+import Text.Hastache (MuType(..))
+import Web.Scotty.Trans (get, param, post, redirect, status, text)
+import Web.Scotty.Hastache (ActionH', ScottyH', hastache, setH)
 
-urls :: Redis.Connection -> ScottyM ()
-urls = undefined
+loadRoutes :: T.Text -> Redis.Connection -> ScottyH' ()
+loadRoutes hostname conn = do
+    get  "/:url_hash" (handleUrlRedirect conn)
 
-handleUrlCreate :: Redis.Connection -> ActionM ()
+    post "/urls"           (handleUrlCreate conn)
+    get  "/urls/:url_hash" (handleUrlView hostname conn)
+
+-- Routes
+-------------------------------------------------------------------------------
+
+-- |
+-- GET /:url_hash
+handleUrlRedirect :: Redis.Connection -> ActionH' ()
+handleUrlRedirect conn = do
+    k  <- param "url_hash"
+    mr <- liftIO $ getUrlFromHash conn k
+    case mr of
+        Just r -> redirect r
+        Nothing -> status status404 >> text "Invalid URL"
+
+-- |
+-- POST /urls
+handleUrlCreate :: Redis.Connection -> ActionH' ()
 handleUrlCreate conn = do
     url <- param "url"
     if validateUrl url
         then do
-            url' <- liftIO $ createUrlFromString conn url
-            redirect url'
+            hash <- liftIO $ getHashFromUrl conn url
+            redirect $ "/urls/" <> hash
         else status status400 >> text "Invalid URL"
 
-handleUrlView :: Redis.Connection -> ActionH ()
-handleUrlView conn = do
+-- |
+-- GET /urls/:url_hash
+handleUrlView :: T.Text -> Redis.Connection -> ActionH' ()
+handleUrlView hostname conn = do
     k <- param "url_hash"
-    u <- Redis.runRedis conn $ Redis.get $ BL.toStrict $ TL.encodeUtf8 k
-    setH "url_hash" k
-    setH "url" u
+    u <- liftIO $ getUrlFromHash conn k
+    setH "original_url"  (MuVariable u)
+    setH "shortened_url" (MuVariable (hostname <> "/" <> TL.toStrict k))
     hastache "urls/view.html"
+
+-- Utility functions
+-------------------------------------------------------------------------------
 
 validateUrl :: B.ByteString -> Bool
 validateUrl _ = True
 
-createUrlFromString :: Redis.Connection -> B.ByteString -> IO TL.Text
-createUrlFromString conn url = do
+getUrlFromHash :: Redis.Connection -> TL.Text -> IO (Maybe TL.Text)
+getUrlFromHash conn k = do
+    rd <- Redis.runRedis conn $ Redis.get $ BL.toStrict $ TL.encodeUtf8 k
+    case rd of
+        Left _ -> fail "Errored communicating with Redis"
+        Right (Just s) -> return $ Just $ TL.decodeUtf8 $ BL.fromStrict s
+        Right Nothing -> return Nothing
+
+getHashFromUrl :: Redis.Connection -> B.ByteString -> IO TL.Text
+getHashFromUrl conn url = do
     k <- getRandomKey
     i <- Redis.runRedis conn $ Redis.setnx k url
 
     case i of
         Left _ -> fail "Errored communicating with Redis"
-        Right True  -> return $ "localhost:3000/" `mappend`
-                                TL.decodeUtf8 (BL.fromStrict k)
-        Right False -> createUrlFromString conn url
+        Right True  -> return $ TL.decodeUtf8 (BL.fromStrict k)
+        Right False -> getHashFromUrl conn url
 
 getRandomKey :: IO B.ByteString
 getRandomKey = do
