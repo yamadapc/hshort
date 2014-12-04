@@ -20,6 +20,16 @@ body, div, span, input, button, a {
   width: 600px;
 }
 
+.original-url {
+  border: solid 1px #C0C0C0;
+  padding: 10px;
+}
+
+.shortened-url {
+  border: solid 1px #C0C0C0;
+  padding: 10px;
+}
+
 input, button {
   background-color: white;
   border: solid 1px #C0C0C0;
