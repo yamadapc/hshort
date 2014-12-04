@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- |
 -- The main entry point for the application.
@@ -5,16 +6,15 @@ module Main where
 
 import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.Char8 as BC (pack)
 import Data.Maybe (isJust, fromMaybe)
 import Data.Monoid ((<>))
 import qualified Data.Text as T (pack, unpack)
-import Data.Word (Word16)
 import qualified Database.Redis as Redis
-import Network.Socket (PortNumber(PortNum))
 import Network.Wai.Middleware.Static
 import System.Environment (getEnv, lookupEnv)
 import Web.Scotty.Trans (get, file, middleware)
-import Web.Scotty.Hastache (ActionH', scottyH', setTemplatesDir)
+import Web.Scotty.Hastache (scottyH', setTemplatesDir)
 
 import qualified Controllers.Urls as UrlsCtrl (loadRoutes)
 
@@ -28,8 +28,8 @@ main = do
     liftIO $
         putStrLn $ "Starting server at " ++ T.unpack hostname
 
-    info <- getRedisConnectInfo
-    conn <- Redis.connect info
+    !info <- getRedisConnectInfo
+    !conn <- Redis.connect info
 
     let Redis.PortNumber pn = Redis.connectPort info
       in liftIO $
@@ -47,13 +47,16 @@ main = do
         middleware $ staticPolicy (noDots >-> addBase "static")
 
         get "/" $ file "static/index.html"
-        UrlsCtrl.loadRoutes hostname conn
+        UrlsCtrl.loadRoutes host conn
 
 getRedisConnectInfo :: IO Redis.ConnectInfo
 getRedisConnectInfo = do
-    redisHost  <- "REDIS_HOST" `fromEnvWithDefault` "127.0.0.1"
-    redisPort  <- read <$> "REDIS_PORT" `fromEnvWithDefault` "6379" :: IO Int
-    mRedisAuth <- fmap read <$> lookupEnv "REDIS_AUTH"
+    !redisHost  <- "REDIS_HOST" `fromEnvWithDefault` "127.0.0.1"
+    !redisPort  <- read <$> "REDIS_PORT" `fromEnvWithDefault` "6379" :: IO Int
+    !mRedisAuthString <- lookupEnv "REDIS_AUTH"
+    print mRedisAuthString
+    let !mRedisAuth = BC.pack <$> mRedisAuthString
+
     return $ Redis.defaultConnectInfo { Redis.connectHost = redisHost
                                       , Redis.connectPort = Redis.PortNumber $
                                             fromIntegral redisPort

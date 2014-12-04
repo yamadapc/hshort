@@ -3,4 +3,4 @@ cabal.sandbox.config
 dist
 dump.rdb
 rebuild
-
+.env
