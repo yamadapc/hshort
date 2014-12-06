@@ -30,6 +30,10 @@ body, div, span, input, button, a {
   padding: 10px;
 }
 
+input {
+  width: 80%;
+}
+
 input, button {
   background-color: white;
   border: solid 1px #C0C0C0;
