@@ -6,21 +6,22 @@ module Controllers.Urls
     )
   where
 
-import Control.Monad.IO.Class (liftIO)
-import qualified Database.Redis as Redis
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL (fromStrict, toStrict)
-import Data.Char (ord)
-import Data.Monoid ((<>))
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
+import           Control.Monad.IO.Class  (liftIO)
+import qualified Data.ByteString         as B
+import qualified Data.ByteString.Lazy    as BL (fromStrict, toStrict)
+import           Data.Char               (ord)
+import           Data.Monoid             ((<>))
+import qualified Data.Text               as T
+import qualified Data.Text.Lazy          as TL
 import qualified Data.Text.Lazy.Encoding as TL
-import Data.Word (Word8)
-import Network.HTTP.Types (status400, status404)
-import System.Random
-import Text.Hastache (MuType(..))
-import Web.Scotty.Trans (get, param, post, redirect, status, text)
-import Web.Scotty.Hastache (ActionH', ScottyH', hastache, setH)
+import           Data.Word               (Word8)
+import qualified Database.Redis          as Redis
+import           Network.HTTP.Types      (status400, status404)
+import           System.Random
+import           Text.Hastache           (MuType (..))
+import           Web.Scotty.Hastache     (ActionH', ScottyH', hastache, setH)
+import           Web.Scotty.Trans        (get, param, post, redirect, status,
+                                          text)
 
 loadRoutes :: T.Text -> Redis.Connection -> ScottyH' ()
 loadRoutes hostname conn = do

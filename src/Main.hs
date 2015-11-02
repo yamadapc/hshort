@@ -1,22 +1,25 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- |
 -- The main entry point for the application.
 module Main where
 
-import Control.Applicative ((<$>))
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.ByteString.Char8 as BC (pack)
-import Data.Maybe (isJust, fromMaybe)
-import Data.Monoid ((<>))
-import qualified Data.Text as T (pack, unpack)
-import qualified Database.Redis as Redis
-import Network.Wai.Middleware.Static
-import System.Environment (getEnv, lookupEnv)
-import Web.Scotty.Trans (get, file, middleware)
-import Web.Scotty.Hastache (scottyH', setTemplatesDir)
+#if __GLASGOW_HASKELL__ < 710
+import           Control.Applicative           ((<$>))
+#endif
+import           Control.Monad.IO.Class        (liftIO)
+import qualified Data.ByteString.Char8         as BC (pack)
+import           Data.Maybe                    (fromMaybe, isJust)
+import           Data.Monoid                   ((<>))
+import qualified Data.Text                     as T (pack, unpack)
+import qualified Database.Redis                as Redis
+import           Network.Wai.Middleware.Static
+import           System.Environment            (getEnv, lookupEnv)
+import           Web.Scotty.Hastache           (scottyH', setTemplatesDir)
+import           Web.Scotty.Trans              (file, get, middleware)
 
-import qualified Controllers.Urls as UrlsCtrl (loadRoutes)
+import qualified Controllers.Urls              as UrlsCtrl (loadRoutes)
 
 main :: IO ()
 main = do
