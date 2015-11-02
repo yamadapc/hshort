@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -it -e PORT=3000 -e HOST=localhost -e REDIS_HOST=redis -e REDIS_PORT=6379 --link redis:redis -p 3000:3000 yamadapc/hshort:0.1.0.0
