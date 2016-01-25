@@ -6,8 +6,10 @@ module Controllers.Urls
     )
   where
 
+import           Control.Monad           (void)
 import           Control.Monad.IO.Class  (liftIO)
-import qualified Data.ByteString         as B
+import qualified Data.ByteString         as B hiding (unpack)
+import qualified Data.ByteString.Char8   as B (unpack)
 import qualified Data.ByteString.Lazy    as BL (fromStrict, toStrict)
 import           Data.Char               (ord)
 import           Data.Monoid             ((<>))
@@ -40,7 +42,9 @@ handleUrlRedirect conn = do
     k  <- param "url_hash"
     mr <- liftIO $ getUrlFromHash conn k
     case mr of
-        Just r -> redirect r
+        Just r -> do
+            liftIO $ incrementViewsFromHash conn k
+            redirect r
         Nothing -> status status404 >> text "Invalid URL"
 
 -- |
@@ -60,21 +64,36 @@ handleUrlView :: T.Text -> Redis.Connection -> ActionH' ()
 handleUrlView hostname conn = do
     k <- param "url_hash"
     u <- liftIO $ getUrlFromHash conn k
+    v <- liftIO $ getViewsFromHash conn k
     setH "original_url"  (MuVariable u)
     setH "shortened_url" (MuVariable (hostname <> "/" <> TL.toStrict k))
+    setH "n_views" (MuVariable v)
     hastache "urls/view.html"
 
 -- Utility functions
 -------------------------------------------------------------------------------
 
+incrementViewsFromHash :: Redis.Connection -> TL.Text -> IO ()
+incrementViewsFromHash conn k = void $ Redis.runRedis conn $
+    Redis.incr ("views::" <> BL.toStrict (TL.encodeUtf8 k))
+
 validateUrl :: B.ByteString -> Bool
-validateUrl _ = True
+validateUrl u = not ("views::" `B.isPrefixOf` u)
+
+getViewsFromHash :: Redis.Connection -> TL.Text -> IO Int
+getViewsFromHash conn k = do
+    rd <- Redis.runRedis conn $
+        Redis.get ("views::" <> BL.toStrict (TL.encodeUtf8 k))
+    case rd of
+        Left _ -> fail "Error-ed communicating with Redis"
+        Right (Just s) -> return (read (B.unpack s))
+        Right Nothing -> return 0
 
 getUrlFromHash :: Redis.Connection -> TL.Text -> IO (Maybe TL.Text)
 getUrlFromHash conn k = do
     rd <- Redis.runRedis conn $ Redis.get $ BL.toStrict $ TL.encodeUtf8 k
     case rd of
-        Left _ -> fail "Errored communicating with Redis"
+        Left _ -> fail "Error-ed communicating with Redis"
         Right (Just s) -> return $ Just $ TL.decodeUtf8 $ BL.fromStrict s
         Right Nothing -> return Nothing
 
