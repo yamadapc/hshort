@@ -23,8 +23,9 @@ import qualified Controllers.Urls              as UrlsCtrl (loadRoutes)
 
 main :: IO ()
 main = do
-    host <- fmap T.pack (getEnv "HOST")
-    port <- fmap read (getEnv "PORT")
+    port <- read <$> (fromMaybe "3000" <$> lookupEnv "PORT")
+    host <- T.pack <$>
+        (fromMaybe ("http://localhost:" <> show port) <$> lookupEnv "HOST")
 
 
     let hostname = host <> ":" <> T.pack (show port)
@@ -57,7 +58,6 @@ getRedisConnectInfo = do
     !redisHost  <- "REDIS_HOST" `fromEnvWithDefault` "127.0.0.1"
     !redisPort  <- read <$> "REDIS_PORT" `fromEnvWithDefault` "6379" :: IO Int
     !mRedisAuthString <- lookupEnv "REDIS_AUTH"
-    print mRedisAuthString
     let !mRedisAuth = BC.pack <$> mRedisAuthString
 
     return $ Redis.defaultConnectInfo { Redis.connectHost = redisHost
@@ -65,4 +65,5 @@ getRedisConnectInfo = do
                                             fromIntegral redisPort
                                       , Redis.connectAuth = mRedisAuth
                                       }
-  where fromEnvWithDefault e d = fromMaybe d <$> lookupEnv e
+  where
+    fromEnvWithDefault e d = fromMaybe d <$> lookupEnv e
