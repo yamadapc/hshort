@@ -15,7 +15,7 @@ import           Data.Monoid                   ((<>))
 import qualified Data.Text                     as T (pack, unpack)
 import qualified Database.Redis                as Redis
 import           Network.Wai.Middleware.Static
-import           System.Environment            (getEnv, lookupEnv)
+import           System.Environment            (lookupEnv)
 import           Web.Scotty.Hastache           (scottyH', setTemplatesDir)
 import           Web.Scotty.Trans              (file, get, middleware)
 
