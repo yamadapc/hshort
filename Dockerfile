@@ -1,13 +1,9 @@
-FROM haskell:7.10
+FROM fpco/stack-build:latest
 
-RUN cabal update
+RUN stack update
 
 ADD ./hshort.cabal /app/hshort.cabal
-RUN cd /app && cabal install --only-dep -j
-
-ADD . /app
-RUN cd /app && cabal install
-
 WORKDIR /app
 
-CMD hshort
+ADD . /app/
+RUN stack build
