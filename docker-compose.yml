@@ -1,0 +1,12 @@
+hshort:
+  build: .
+  links:
+    - "redis:redis"
+  environment:
+    - REDIS_HOST=redis
+    - REDIS_AUTH=password
+
+redis:
+  image: tutum/redis
+  environment:
+    - REDIS_PASS=password
