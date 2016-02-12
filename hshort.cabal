@@ -13,6 +13,7 @@ cabal-version: >=1.10
 
 executable hshort
   main-is: Main.hs
+  other-modules: Controllers.Urls
   build-depends: base >=4.7 && <5
                , bytestring >=0.10 && <0.11
                , data-default >= 0.5.3
