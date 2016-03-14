@@ -5,4 +5,4 @@ WORKDIR /app
 ADD . /app/
 RUN stack build
 RUN stack install
-CMD hshort
+CMD $HOME/.local/bin/hshort
